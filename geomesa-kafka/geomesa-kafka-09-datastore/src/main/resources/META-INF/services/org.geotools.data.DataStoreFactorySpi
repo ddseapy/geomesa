@@ -1,1 +1,1 @@
-org.locationtech.geomesa.kafka.KafkaDataStoreFactory
+org.locationtech.geomesa.kafka09.KafkaDataStoreFactory

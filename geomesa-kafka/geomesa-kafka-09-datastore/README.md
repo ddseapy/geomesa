@@ -204,7 +204,7 @@ The KafkaGeoMessageFormatter, part of geomesa-kafka-datastore, may be used with 
 part of Apache Kafka.  In order to use this formatter call the kafka-console consumer with these additional
 arguments:
 
-    --formatter org.locationtech.geomesa.kafka.KafkaGeoMessageFormatter
+    --formatter org.locationtech.geomesa.kafka09.KafkaGeoMessageFormatter
     --property sft.name={sftName}
     --property sft.spec={sftSpec}
     
@@ -215,7 +215,7 @@ A slightly easier to use but slightly less flexible alternative is to use the `K
 instead of the `kafka-console-consumer`.  To use the `KafkaDataStoreLogViewer` first copy the
 geomesa-kafka-gs-plugin.jar to $KAFKA_HOME/libs.  Then create a copy of
 $KAFKA_HOME/bin/kafka-console-consumer.sh called "kafka-ds-log-viewer" and in the copy replace the classname
-in the exec command at the end of the script with `org.locationtech.geomesa.kafka.KafkaDataStoreLogViewer`.
+in the exec command at the end of the script with `org.locationtech.geomesa.kafka09.KafkaDataStoreLogViewer`.
 
 The `KafkaDataStoreLogViewer` requires three arguments: `--zookeeper`, `--zkPath`, and `--sftName`.  It also
 supports an optional argument `--from` which accepts values `oldest` and `newest`.  `oldest` is equivalent
