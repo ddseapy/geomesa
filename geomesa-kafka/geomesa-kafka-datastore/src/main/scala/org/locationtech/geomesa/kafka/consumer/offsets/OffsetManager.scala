@@ -18,8 +18,8 @@ import kafka.common.{OffsetAndMetadata, TopicAndPartition}
 import kafka.consumer.ConsumerConfig
 import kafka.message.{ByteBufferMessageSet, MessageAndOffset}
 import kafka.network.BlockingChannel
-import kafka.utils.ZKStringSerializer
-import org.I0Itec.zkclient.ZkClient
+import kafka.utils.ZkUtils
+import org.apache.kafka.common.security.JaasUtils
 import org.locationtech.geomesa.kafka.consumer.KafkaConsumer._
 import org.locationtech.geomesa.kafka.consumer._
 import org.locationtech.geomesa.kafka.consumer.offsets.FindOffset.MessagePredicate
@@ -35,11 +35,11 @@ class OffsetManager(val config: ConsumerConfig)
 
   import OffsetManager._
 
-  lazy private val channel = WrappedChannel(zkClient, config)
-  lazy private val zkClient = {
+  lazy private val channel = WrappedChannel(zkUtils, config)
+  lazy private val zkUtils = {
     val sTimeout = config.zkSessionTimeoutMs
     val cTimeout = config.zkConnectionTimeoutMs
-    new ZkClient(config.zkConnect, sTimeout, cTimeout, ZKStringSerializer)
+    ZkUtils(config.zkConnect, sTimeout, cTimeout, JaasUtils.isZkSecurityEnabled)
   }
 
   /**
@@ -97,7 +97,7 @@ class OffsetManager(val config: ConsumerConfig)
                   config: ConsumerConfig): Offsets = {
     partitions.flatMap { partition =>
       val tap = TopicAndPartition(topic, partition.partitionId)
-      val leader = partition.leader.map(Broker.apply).getOrElse(findNewLeader(tap, None, config))
+      val leader = partition.leader.map(b => Broker(b.host, b.port)).getOrElse(findNewLeader(tap, None, config))
       val consumer = WrappedConsumer(createConsumer(leader.host, leader.port, config, "offsetLookup"), tap, config)
       try {
         val consumerId = Request.OrdinaryConsumerId
@@ -218,7 +218,7 @@ class OffsetManager(val config: ConsumerConfig)
 
     try {
       channel.channel().send(request)
-      val response = OffsetCommitResponse.readFrom(channel.channel().receive().buffer)
+      val response = OffsetCommitResponse.readFrom(channel.channel().receive().payload())
       val errors = response.commitStatus.filter { case (_, code) => code != NoError }
       errors.foreach { case (topicAndPartition, code) =>
         if (code == OffsetMetadataTooLargeCode) {
@@ -245,7 +245,7 @@ class OffsetManager(val config: ConsumerConfig)
 
   override def close(): Unit = {
     channel.disconnect()
-    zkClient.close()
+    zkUtils.close()
   }
 }
 
@@ -264,7 +264,7 @@ object OffsetManager extends LazyLogging {
     val version = OffsetFetchRequest.CurrentVersion
     val request = new OffsetFetchRequest(config.groupId, partitions, version, 0, clientId)
     channel.send(request)
-    val response = OffsetFetchResponse.readFrom(channel.receive().buffer)
+    val response = OffsetFetchResponse.readFrom(channel.receive().payload())
     handleOffsetErrors(response.requestInfo.values.map(_.error))
     response.requestInfo.map { case (topicAndPartion, metadata) => (topicAndPartion, metadata.offset) }
   }
@@ -304,7 +304,7 @@ object OffsetManager extends LazyLogging {
 /**
  * Container for passing around a channel so that it can be rebuilt without losing the reference to it
  */
-case class WrappedChannel(zkClient: ZkClient, config: ConsumerConfig) {
+case class WrappedChannel(zkUtils: ZkUtils, config: ConsumerConfig) {
 
   private var reusableChannel: BlockingChannel = null
   private val timeout = config.offsetsChannelSocketTimeoutMs
@@ -325,7 +325,7 @@ case class WrappedChannel(zkClient: ZkClient, config: ConsumerConfig) {
    */
   def reconnect(): Unit = synchronized {
     disconnect()
-    reusableChannel = ClientUtils.channelToOffsetManager(config.groupId, zkClient, timeout, backoff)
+    reusableChannel = ClientUtils.channelToOffsetManager(config.groupId, zkUtils, timeout, backoff)
   }
 
   /**

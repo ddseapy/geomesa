@@ -61,7 +61,7 @@ class KafkaStreamLike[K, V](protected[consumer] val queue: BlockingQueue[Fetched
       val partition = topicInfo.partitionId
       val message = messages.next()
       topicInfo.resetConsumeOffset(message.nextOffset)
-      MessageAndMetadata(topic, partition, message.message, message.offset, keyDecoder, valueDecoder)
+      MessageAndMetadata(topic, partition, message.message, message.offset, keyDecoder = keyDecoder, valueDecoder = valueDecoder)
     }
   }
 }

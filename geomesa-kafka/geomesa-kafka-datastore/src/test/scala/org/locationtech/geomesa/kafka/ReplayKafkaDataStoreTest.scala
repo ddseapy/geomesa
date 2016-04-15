@@ -13,7 +13,8 @@ import java.{util => ju}
 
 import kafka.admin.AdminUtils
 import kafka.producer.{Producer, ProducerConfig}
-import org.I0Itec.zkclient.ZkClient
+import kafka.utils.ZkUtils
+import org.apache.kafka.common.security.JaasUtils
 import org.geotools.data.simple.{SimpleFeatureCollection, SimpleFeatureSource}
 import org.geotools.data.{DataStore, Query}
 import org.joda.time.Instant
@@ -60,11 +61,11 @@ class ReplayKafkaDataStoreTest
       val topic = KafkaDataStoreHelper.extractTopic(liveSFT)
       topic must beSome(contain(liveSFT.getTypeName))
 
-      val zkClient = new ZkClient(zkConnect)
+      val zkUtils = ZkUtils(zkConnect, 1000, 1000, JaasUtils.isZkSecurityEnabled)
       try {
-        AdminUtils.topicExists(zkClient, topic.get) must beTrue
+        AdminUtils.topicExists(zkUtils, topic.get) must beTrue
       } finally {
-        zkClient.close()
+        zkUtils.close()
       }
 
       sendMessages(liveSFT)

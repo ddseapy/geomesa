@@ -12,7 +12,8 @@ import java.net.InetSocketAddress
 
 import com.typesafe.scalalogging.LazyLogging
 import kafka.server.KafkaConfig
-import kafka.utils.{TestUtils, Utils}
+import kafka.utils.TestUtils
+import org.apache.kafka.common.utils.Utils
 import org.apache.zookeeper.server.{NIOServerCnxnFactory, ZooKeeperServer}
 
 trait HasEmbeddedZookeeper {
@@ -76,24 +77,24 @@ trait EmbeddedService[C] extends AnyRef {
 }
 
 class EmbeddedZookeeper extends EmbeddedService[String] {
-  private val zkPort = TestUtils.choosePort()
-
-  val zkConnect = "127.0.0.1:" + zkPort
-  override def connection = zkConnect
-
   val snapshotDir = TestUtils.tempDir()
   val logDir = TestUtils.tempDir()
   val tickTime = 500
   val zookeeper = new ZooKeeperServer(snapshotDir, logDir, tickTime)
   val factory = new NIOServerCnxnFactory()
-  factory.configure(new InetSocketAddress("127.0.0.1", zkPort), 1024)
+  factory.configure(new InetSocketAddress("127.0.0.1", TestUtils.RandomPort), 1024)
   factory.startup(zookeeper)
+
+  private val zkPort = zookeeper.getClientPort
+
+  val zkConnect = "127.0.0.1:" + zkPort
+  override def connection = zkConnect
 
   override def shutdown(): Unit = {
     try { zookeeper.shutdown() } catch { case _: Throwable => }
     try { factory.shutdown() } catch { case _: Throwable => }
-    Utils.rm(logDir)
-    Utils.rm(snapshotDir)
+    Utils.delete(logDir)
+    Utils.delete(snapshotDir)
   }
 }
 
@@ -102,7 +103,7 @@ class EmbeddedKafka extends EmbeddedService[(String, String)] {
   private val zkConnect = EmbeddedZookeeper.connect()
 
   private val brokerConf = {
-    val conf = TestUtils.createBrokerConfig(1)
+    val conf = TestUtils.createBrokerConfig(1, zkConnect)
     conf.setProperty("zookeeper.connect", zkConnect) // override to use a unique zookeeper
     conf
   }
@@ -110,7 +111,7 @@ class EmbeddedKafka extends EmbeddedService[(String, String)] {
   val brokerConnect = s"${brokerConf.getProperty("host.name")}:${brokerConf.getProperty("port")}"
   override def connection = (brokerConnect, zkConnect)
 
-  private val server = TestUtils.createServer(new KafkaConfig(brokerConf))
+  private val server = TestUtils.createServer(new KafkaConfig(brokerConf, true))
 
   override def shutdown(): Unit = {
     try { server.shutdown() } catch { case _: Throwable => }
