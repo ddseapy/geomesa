@@ -9,17 +9,15 @@ package org.locationtech.geomesa.kafka09
 
 
 import org.junit.runner.RunWith
-import org.locationtech.geomesa.kafka.AbstractKafkaDataStoreTest
-import org.locationtech.geomesa.kafka.consumer.AbstractKafkaConsumerTest
-import org.locationtech.geomesa.kafka.consumer.offsets.AbstractOffsetManagerIntegrationTest
+import org.locationtech.geomesa.kafka
 import org.specs2.runner.JUnitRunner
 
 
 @RunWith(classOf[JUnitRunner])
-class KafkaDataStoreTest extends AbstractKafkaDataStoreTest
+class KafkaDataStoreTest extends kafka.KafkaDataStoreTest
 
 @RunWith(classOf[JUnitRunner])
-class KafkaConsumerTest extends AbstractKafkaConsumerTest
+class KafkaConsumerTest extends kafka.consumer.KafkaConsumerTest
 
 @RunWith(classOf[JUnitRunner])
-class OffsetManagerIntegrationTest extends AbstractOffsetManagerIntegrationTest
+class OffsetManagerIntegrationTest extends kafka.consumer.offsets.OffsetManagerIntegrationTest

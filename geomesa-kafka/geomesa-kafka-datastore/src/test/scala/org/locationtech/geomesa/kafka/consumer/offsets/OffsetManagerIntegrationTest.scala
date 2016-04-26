@@ -21,12 +21,7 @@ import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 
 @RunWith(classOf[JUnitRunner])
-class OffsetManagerIntegrationTest extends AbstractOffsetManagerIntegrationTest
-
-/**
-  * Used in kafka-09-utils module
-  */
-abstract class AbstractOffsetManagerIntegrationTest extends Specification with HasEmbeddedKafka {
+class OffsetManagerIntegrationTest extends Specification with HasEmbeddedKafka {
 
   sequential // this doesn't really need to be sequential, but we're trying to reduce zk load
 

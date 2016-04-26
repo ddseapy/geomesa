@@ -24,12 +24,7 @@ import org.specs2.runner.JUnitRunner
 import scala.collection.mutable.ArrayBuffer
 
 @RunWith(classOf[JUnitRunner])
-class KafkaConsumerTest extends AbstractKafkaConsumerTest
-
-/**
-  * Used in kafka-09-utils module
-  */
-abstract class AbstractKafkaConsumerTest extends Specification with HasEmbeddedKafka {
+class KafkaConsumerTest extends Specification with HasEmbeddedKafka {
 
   sequential
 
