@@ -8,7 +8,7 @@ import com.typesafe.scalalogging.LazyLogging
 import kafka.admin.AdminUtils
 import kafka.api.{PartitionMetadata, RequestOrResponse}
 import kafka.client.ClientUtils
-import kafka.common.TopicAndPartition
+import kafka.common.{OffsetAndMetadata, TopicAndPartition}
 import kafka.consumer.{ConsumerThreadId, PartitionAssignor, AssignmentContext, ConsumerConfig}
 import kafka.network.BlockingChannel
 import kafka.utils.{ZKStringSerializer, Utils}
@@ -30,6 +30,7 @@ trait AbstractKafkaUtils {
                        partitions: Option[Seq[PartitionMetadata]],
                        oldLeader: Option[Broker],
                        tries: Int): Option[Broker]
+  def createOffsetAndMetadata(offset: Long, time: Long): OffsetAndMetadata
   def rm(file: File): Unit
 }
 
@@ -75,6 +76,7 @@ object DefaultKafkaUtils extends AbstractKafkaUtils {
 
     leader.map(l => Broker(l.host, l.port))
   }
+  def createOffsetAndMetadata(offset: Long, time: Long): OffsetAndMetadata = OffsetAndMetadata(offset, timestamp = time)
   def rm(file: File): Unit = Utils.rm(file)
 }
 

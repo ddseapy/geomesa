@@ -4,7 +4,7 @@ import java.io.File
 import java.nio.ByteBuffer
 
 import kafka.api.{PartitionMetadata, RequestOrResponse}
-import kafka.common.TopicAndPartition
+import kafka.common.{OffsetMetadata, OffsetAndMetadata, TopicAndPartition}
 import kafka.consumer.{AssignmentContext, PartitionAssignor}
 import kafka.network.BlockingChannel
 import org.apache.kafka.common.security.JaasUtils
@@ -34,4 +34,5 @@ class KafkaUtils extends AbstractKafkaUtils {
     leader.map(l => Broker(l.host, l.port))
   }
   def rm(file: File): Unit = Utils.delete(file)
+  def createOffsetAndMetadata(offset: Long, time: Long) = OffsetAndMetadata(offset, OffsetMetadata.NoMetadata, timestamp = time)
 }

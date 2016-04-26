@@ -128,7 +128,7 @@ case class KafkaConsumer[K, V](topic: String,
           s"[${offsets.map(o => s"${o._1.partition}->${o._2}").mkString(",")}]")
 
       val time = System.currentTimeMillis()
-      val commits = offsets.map { case (tap, o) => (tap, OffsetAndMetadata(o, metadata = "", timestamp = time)) }
+      val commits = offsets.map { case (tap, o) => (tap, KafkaUtilsLoader.kafkaUtils.createOffsetAndMetadata(o, time)) }
       offsetManager.commitOffsets(commits, isAutoCommit = false)
       commits.foreach { case (tap, o) => consumeCheck.put(tap, o.offset) }
     } catch {
@@ -219,7 +219,7 @@ case class KafkaConsumer[K, V](topic: String,
         maxToConsume = Math.max(nextToConsume, maxToConsume)
       }
       if (maxToConsume > consumeCheck.get(tap)) {
-        Some(tap -> OffsetAndMetadata(maxToConsume, metadata = "", timestamp = System.currentTimeMillis()))
+        Some(tap -> KafkaUtilsLoader.kafkaUtils.createOffsetAndMetadata(maxToConsume, System.currentTimeMillis()))
       } else {
         None
       }
