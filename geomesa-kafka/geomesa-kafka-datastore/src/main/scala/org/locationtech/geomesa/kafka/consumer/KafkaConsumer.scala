@@ -23,6 +23,7 @@ import kafka.serializer.Decoder
 import kafka.utils.ZKGroupDirs
 import org.I0Itec.zkclient.ZkClient
 import org.I0Itec.zkclient.exception.ZkNodeExistsException
+import org.locationtech.geomesa.kafka.KafkaUtilsLoader
 import org.locationtech.geomesa.kafka.consumer.offsets.{GroupOffset, OffsetManager, RequestedOffset}
 
 import scala.annotation.tailrec
@@ -178,7 +179,7 @@ case class KafkaConsumer[K, V](topic: String,
       partitionsForQueue.foreach { partition =>
         val tap = TopicAndPartition(topic, partition.partitionId)
         val clientId = config.clientId
-        val leader = partition.leader.map(l => Broker(l.host, l.port)).getOrElse(findNewLeader(tap, None, config))
+        val leader = KafkaUtilsLoader.kafkaUtils.leaderBrokerForPartition(partition).getOrElse(findNewLeader(tap, None, config))
 
         val connection = createConsumer(leader.host, leader.port, config, clientId)
         val consumer = WrappedConsumer(connection, tap, config)
@@ -393,15 +394,7 @@ object KafkaConsumer extends LazyLogging {
                             config: ConsumerConfig,
                             tries: Int): Broker = {
     val partitions = Try(findPartitions(tap.topic, config)).toOption
-    val maybeLeader = partitions.flatMap(_.find(_.partitionId == tap.partition)).flatMap(_.leader)
-    val leader = oldLeader match {
-      // first time through if the leader hasn't changed give ZooKeeper a second to recover
-      // second time, assume the broker did recover before failover, or it was a non-Broker issue
-      case Some(old) => maybeLeader.filter(m => (m.host != old.host && m.port != old.port) || tries > 1)
-      case None      => maybeLeader
-    }
-
-    leader.map(l => Broker(l.host, l.port)) match {
+    KafkaUtilsLoader.kafkaUtils.tryFindNewLeader(tap, partitions, oldLeader, tries) match {
       case Some(l) => l
       case None =>
         if (tries < config.rebalanceMaxRetries) {

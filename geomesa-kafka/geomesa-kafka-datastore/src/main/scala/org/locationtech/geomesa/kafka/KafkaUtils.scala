@@ -6,23 +6,30 @@ import java.util.ServiceLoader
 
 import com.typesafe.scalalogging.LazyLogging
 import kafka.admin.AdminUtils
+import kafka.api.{PartitionMetadata, RequestOrResponse}
 import kafka.client.ClientUtils
-import kafka.cluster.Broker
 import kafka.common.TopicAndPartition
 import kafka.consumer.{ConsumerThreadId, PartitionAssignor, AssignmentContext, ConsumerConfig}
 import kafka.network.BlockingChannel
 import kafka.utils.Utils
 import org.I0Itec.zkclient.ZkClient
 import org.apache.zookeeper.data.Stat
+import org.locationtech.geomesa.kafka.consumer.Broker
 
 import scala.collection.Map
 
 trait AbstractKafkaUtils {
   def channelToPayload: (BlockingChannel) => ByteBuffer
+  def channelSend(bc: BlockingChannel, requestOrResponse: RequestOrResponse): Long
+  def leaderBrokerForPartition: PartitionMetadata => Option[Broker]
   def assign(partitionAssignor: PartitionAssignor, ac: AssignmentContext): Map[TopicAndPartition, ConsumerThreadId]
   def createZkUtils(config: ConsumerConfig): AbstractZkUtils =
     createZkUtils(config.zkConnect, config.zkSessionTimeoutMs, config.zkConnectionTimeoutMs)
   def createZkUtils(zkConnect: String, sessionTimeout: Int, connectTimeout: Int): AbstractZkUtils
+  def tryFindNewLeader(tap: TopicAndPartition,
+                       partitions: Option[Seq[PartitionMetadata]],
+                       oldLeader: Option[Broker],
+                       tries: Int): Option[Broker]
   def rm(file: File): Unit
 }
 
@@ -47,9 +54,25 @@ object KafkaUtilsLoader extends LazyLogging {
   */
 object DefaultKafkaUtils extends AbstractKafkaUtils {
   def channelToPayload: (BlockingChannel) => ByteBuffer = _.receive().buffer
+  def channelSend(bc: BlockingChannel, requestOrResponse: RequestOrResponse): Long = bc.send(requestOrResponse).toLong
+  def leaderBrokerForPartition: PartitionMetadata => Option[Broker] = _.leader.map(l => Broker(l.host, l.port))
   def assign(partitionAssignor: PartitionAssignor, ac: AssignmentContext) = partitionAssignor.assign(ac)
   def createZkUtils(zkConnect: String, sessionTimeout: Int, connectTimeout: Int): AbstractZkUtils =
     DefaultZkUtils(new ZkClient(zkConnect, sessionTimeout, connectTimeout))
+  def tryFindNewLeader(tap: TopicAndPartition,
+                       partitions: Option[Seq[PartitionMetadata]],
+                       oldLeader: Option[Broker],
+                       tries: Int): Option[Broker] = {
+    val maybeLeader = partitions.flatMap(_.find(_.partitionId == tap.partition)).flatMap(_.leader)
+    val leader = oldLeader match {
+      // first time through if the leader hasn't changed give ZooKeeper a second to recover
+      // second time, assume the broker did recover before failover, or it was a non-Broker issue
+      case Some(old) => maybeLeader.filter(m => (m.host != old.host && m.port != old.port) || tries > 1)
+      case None      => maybeLeader
+    }
+
+    leader.map(l => Broker(l.host, l.port))
+  }
   def rm(file: File): Unit = Utils.rm(file)
 }
 
@@ -74,7 +97,7 @@ case class DefaultZkUtils(zkClient: ZkClient) extends AbstractZkUtils {
   def getConsumerPartitionOwnerPath(groupId: String, topic: String, partition: Int): String =
     kafka.utils.ZkUtils.getConsumerPartitionOwnerPath(groupId, topic, partition)
   def getChildrenParentMayNotExist(path: String): Seq[String] = kafka.utils.ZkUtils.getChildrenParentMayNotExist(zkClient, path)
-  def getAllBrokersInCluster: Seq[Broker] = kafka.utils.ZkUtils.getAllBrokersInCluster(zkClient)
+  def getAllBrokersInCluster: Seq[kafka.cluster.Broker] = kafka.utils.ZkUtils.getAllBrokersInCluster(zkClient)
   def createAssignmentContext(group: String, consumerId: String, excludeInternalTopics: Boolean): AssignmentContext =
     new AssignmentContext(group, consumerId, excludeInternalTopics, zkClient)
   def readData(path: String): (String, Stat) = kafka.utils.ZkUtils.readData(zkClient, path)
@@ -97,7 +120,7 @@ trait AbstractZkUtils {
   def deletePath(path: String): Unit
   def getConsumerPartitionOwnerPath(groupId: String, topic: String, partition: Int): String
   def getChildrenParentMayNotExist(path: String): Seq[String]
-  def getAllBrokersInCluster: Seq[Broker]
+  def getAllBrokersInCluster: Seq[kafka.cluster.Broker]
   def createAssignmentContext(group: String, consumerId: String, excludeInternalTopics: Boolean): AssignmentContext
   def readData(path: String): (String, Stat)
   def close(): Unit
