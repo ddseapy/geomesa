@@ -11,7 +11,7 @@ import kafka.client.ClientUtils
 import kafka.common.TopicAndPartition
 import kafka.consumer.{ConsumerThreadId, PartitionAssignor, AssignmentContext, ConsumerConfig}
 import kafka.network.BlockingChannel
-import kafka.utils.Utils
+import kafka.utils.{ZKStringSerializer, Utils}
 import org.I0Itec.zkclient.ZkClient
 import org.apache.zookeeper.data.Stat
 import org.locationtech.geomesa.kafka.consumer.Broker
@@ -57,8 +57,10 @@ object DefaultKafkaUtils extends AbstractKafkaUtils {
   def channelSend(bc: BlockingChannel, requestOrResponse: RequestOrResponse): Long = bc.send(requestOrResponse).toLong
   def leaderBrokerForPartition: PartitionMetadata => Option[Broker] = _.leader.map(l => Broker(l.host, l.port))
   def assign(partitionAssignor: PartitionAssignor, ac: AssignmentContext) = partitionAssignor.assign(ac)
-  def createZkUtils(zkConnect: String, sessionTimeout: Int, connectTimeout: Int): AbstractZkUtils =
-    DefaultZkUtils(new ZkClient(zkConnect, sessionTimeout, connectTimeout))
+  def createZkUtils(zkConnect: String, sessionTimeout: Int, connectTimeout: Int): AbstractZkUtils = {
+    // zkStringSerializer is required - otherwise topics won't be created correctly
+    DefaultZkUtils(new ZkClient(zkConnect, sessionTimeout, connectTimeout, ZKStringSerializer))
+  }
   def tryFindNewLeader(tap: TopicAndPartition,
                        partitions: Option[Seq[PartitionMetadata]],
                        oldLeader: Option[Broker],
