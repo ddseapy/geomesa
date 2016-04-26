@@ -19,12 +19,17 @@ import org.junit.runner.RunWith
 import org.locationtech.geomesa.kafka.HasEmbeddedKafka
 import org.locationtech.geomesa.kafka.consumer.offsets._
 import org.specs2.mutable.Specification
-import org.specs2.runner
+import org.specs2.runner.JUnitRunner
 
 import scala.collection.mutable.ArrayBuffer
 
-@RunWith(classOf[runner.JUnitRunner])
-class KafkaConsumerTest extends Specification with HasEmbeddedKafka {
+@RunWith(classOf[JUnitRunner])
+class KafkaConsumerTest extends AbstractKafkaConsumerTest
+
+/**
+  * Used in kafka-09-utils module
+  */
+abstract class AbstractKafkaConsumerTest extends Specification with HasEmbeddedKafka {
 
   sequential
 

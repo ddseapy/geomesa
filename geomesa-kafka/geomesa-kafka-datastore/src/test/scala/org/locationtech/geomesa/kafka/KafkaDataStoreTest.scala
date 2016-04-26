@@ -25,7 +25,12 @@ import org.specs2.runner.JUnitRunner
 import scala.collection.JavaConversions._
 
 @RunWith(classOf[JUnitRunner])
-class KafkaDataStoreTest extends Specification with HasEmbeddedKafka with LazyLogging {
+class KafkaDataStoreTest extends AbstractKafkaDataStoreTest
+
+/**
+  * Used in kafka-09-utils module
+  */
+abstract class AbstractKafkaDataStoreTest extends Specification with HasEmbeddedKafka with LazyLogging {
 
   sequential // this doesn't really need to be sequential, but we're trying to reduce zk load
 
