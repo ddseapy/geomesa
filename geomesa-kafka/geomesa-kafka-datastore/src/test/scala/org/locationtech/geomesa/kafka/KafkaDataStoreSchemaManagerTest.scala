@@ -12,7 +12,7 @@ import java.util.UUID
 
 import com.typesafe.scalalogging.LazyLogging
 import kafka.admin.AdminUtils
-import kafka.utils.{ZKStringSerializer, ZkUtils => KafkaZkUtils}
+import kafka.utils.{ZKStringSerializer, ZkUtils}
 import org.I0Itec.zkclient.ZkClient
 import org.geotools.data.store.{ContentDataStore, ContentEntry}
 import org.geotools.feature.NameImpl
@@ -247,7 +247,7 @@ class KafkaDataStoreSchemaManagerTest
 
         val topic = KafkaDataStoreHelper.extractTopic(liveSFT).get
         AdminUtils.topicExists(zkClient, topic) must beTrue and (
-          zkClient.exists(KafkaZkUtils.getDeleteTopicPath(topic)) must beFalse)
+          zkClient.exists(ZkUtils.getDeleteTopicPath(topic)) must beFalse)
       }
 
       "when given a Name" in new ZkContext(zkConnect) {
@@ -278,7 +278,7 @@ class KafkaDataStoreSchemaManagerTest
 
         val topic = KafkaDataStoreHelper.extractTopic(liveSFT).get
         AdminUtils.topicExists(zkClient, topic) must beTrue and (
-          zkClient.exists(KafkaZkUtils.getDeleteTopicPath(topic)) must beFalse)
+          zkClient.exists(ZkUtils.getDeleteTopicPath(topic)) must beFalse)
       }
 
       "delete the topic when removing a Streaming SFT" in new ZkContext(zkConnect) {
@@ -301,7 +301,7 @@ class KafkaDataStoreSchemaManagerTest
         // the topic should no longer exist or at a minimum be marked for deletion
         val topic = KafkaDataStoreHelper.extractTopic(liveSFT).get
         AdminUtils.topicExists(zkClient, topic) must beFalse or (
-          zkClient.exists(KafkaZkUtils.getDeleteTopicPath(topic)) must beTrue)
+          zkClient.exists(ZkUtils.getDeleteTopicPath(topic)) must beTrue)
       }
     }
   }

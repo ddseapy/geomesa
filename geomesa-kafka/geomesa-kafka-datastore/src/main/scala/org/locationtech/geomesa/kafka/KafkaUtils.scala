@@ -37,7 +37,7 @@ object KafkaUtilsLoader extends LazyLogging {
       first
     } else {
       logger.debug(s"No geomesa KafkaUtils found.  Using default one for 0.8.")
-      KafkaUtils
+      DefaultKafkaUtils
     }
   }
 }
@@ -45,18 +45,18 @@ object KafkaUtilsLoader extends LazyLogging {
 /**
   * Default KafkaUtils for kafka 0.8
   */
-object KafkaUtils extends AbstractKafkaUtils {
+object DefaultKafkaUtils extends AbstractKafkaUtils {
   def channelToPayload: (BlockingChannel) => ByteBuffer = _.receive().buffer
   def assign(partitionAssignor: PartitionAssignor, ac: AssignmentContext) = partitionAssignor.assign(ac)
   def createZkUtils(zkConnect: String, sessionTimeout: Int, connectTimeout: Int): AbstractZkUtils =
-    ZkUtils(new ZkClient(zkConnect, sessionTimeout, connectTimeout))
+    DefaultZkUtils(new ZkClient(zkConnect, sessionTimeout, connectTimeout))
   def rm(file: File): Unit = Utils.rm(file)
 }
 
 /**
   * Default ZkUtils for kafka 0.8
   */
-case class ZkUtils(zkClient: ZkClient) extends AbstractZkUtils {
+case class DefaultZkUtils(zkClient: ZkClient) extends AbstractZkUtils {
   def channelToOffsetManager(groupId: String, socketTimeoutMs: Int, retryBackOffMs: Int): BlockingChannel =
     ClientUtils.channelToOffsetManager(groupId, zkClient, socketTimeoutMs, retryBackOffMs)
   def deleteTopic(topic: String): Unit = AdminUtils.deleteTopic(zkClient, topic)
