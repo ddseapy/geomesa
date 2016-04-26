@@ -207,11 +207,10 @@ class OffsetManager(val config: ConsumerConfig)
 
   @tailrec
   private def commitOffsets(offsets: Map[TopicAndPartition, OffsetAndMetadata], tries: Int): Unit = {
-    val version = OffsetCommitRequest.CurrentVersion
-    val request = new OffsetCommitRequest(config.groupId, offsets, version, 0, clientId)
+    val request = KafkaUtilsLoader.kafkaUtils.createOffsetCommitRequest(config.groupId, offsets, OffsetCommitRequest.CurrentVersion, 0, clientId)
 
     try {
-      channel.channel().send(request)
+      KafkaUtilsLoader.kafkaUtils.channelSend(channel.channel(), request)
       val response = OffsetCommitResponse.readFrom(KafkaUtilsLoader.kafkaUtils.channelToPayload(channel.channel()))
       val errors = response.commitStatus.filter { case (_, code) => code != NoError }
       errors.foreach { case (topicAndPartition, code) =>

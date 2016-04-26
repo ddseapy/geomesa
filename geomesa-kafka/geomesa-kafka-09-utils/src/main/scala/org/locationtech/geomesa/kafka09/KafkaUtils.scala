@@ -3,7 +3,7 @@ package org.locationtech.geomesa.kafka09
 import java.io.File
 import java.nio.ByteBuffer
 
-import kafka.api.{PartitionMetadata, RequestOrResponse}
+import kafka.api.{OffsetCommitRequest, PartitionMetadata, RequestOrResponse}
 import kafka.common.{OffsetMetadata, OffsetAndMetadata, TopicAndPartition}
 import kafka.consumer.{AssignmentContext, PartitionAssignor}
 import kafka.network.BlockingChannel
@@ -11,6 +11,8 @@ import org.apache.kafka.common.security.JaasUtils
 import org.apache.kafka.common.utils.Utils
 import org.locationtech.geomesa.kafka.consumer.Broker
 import org.locationtech.geomesa.kafka.{AbstractZkUtils, AbstractKafkaUtils}
+
+import scala.collection.immutable
 
 class KafkaUtils extends AbstractKafkaUtils {
   def channelToPayload: (BlockingChannel) => ByteBuffer = _.receive().payload()
@@ -35,4 +37,10 @@ class KafkaUtils extends AbstractKafkaUtils {
   }
   def rm(file: File): Unit = Utils.delete(file)
   def createOffsetAndMetadata(offset: Long, time: Long) = OffsetAndMetadata(offset, OffsetMetadata.NoMetadata, timestamp = time)
+  def createOffsetCommitRequest(groupId: String,
+                                requestInfo: immutable.Map[TopicAndPartition, OffsetAndMetadata],
+                                versionId: Short,
+                                correlationId: Int,
+                                clientId: String): OffsetCommitRequest =
+    new OffsetCommitRequest(groupId, requestInfo, versionId, correlationId, clientId)
 }

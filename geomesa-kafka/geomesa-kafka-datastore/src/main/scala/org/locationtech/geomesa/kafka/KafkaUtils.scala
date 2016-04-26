@@ -6,7 +6,7 @@ import java.util.ServiceLoader
 
 import com.typesafe.scalalogging.LazyLogging
 import kafka.admin.AdminUtils
-import kafka.api.{PartitionMetadata, RequestOrResponse}
+import kafka.api.{OffsetCommitRequest, PartitionMetadata, RequestOrResponse}
 import kafka.client.ClientUtils
 import kafka.common.{OffsetAndMetadata, TopicAndPartition}
 import kafka.consumer.{ConsumerThreadId, PartitionAssignor, AssignmentContext, ConsumerConfig}
@@ -16,7 +16,7 @@ import org.I0Itec.zkclient.ZkClient
 import org.apache.zookeeper.data.Stat
 import org.locationtech.geomesa.kafka.consumer.Broker
 
-import scala.collection.Map
+import scala.collection.{immutable, Map}
 
 trait AbstractKafkaUtils {
   def channelToPayload: (BlockingChannel) => ByteBuffer
@@ -30,8 +30,13 @@ trait AbstractKafkaUtils {
                        partitions: Option[Seq[PartitionMetadata]],
                        oldLeader: Option[Broker],
                        tries: Int): Option[Broker]
-  def createOffsetAndMetadata(offset: Long, time: Long): OffsetAndMetadata
   def rm(file: File): Unit
+  def createOffsetAndMetadata(offset: Long, time: Long): OffsetAndMetadata
+  def createOffsetCommitRequest(groupId: String,
+                                requestInfo: immutable.Map[TopicAndPartition, OffsetAndMetadata],
+                                versionId: Short,
+                                correlationId: Int,
+                                clientId: String): OffsetCommitRequest
 }
 
 object KafkaUtilsLoader extends LazyLogging {
@@ -76,8 +81,14 @@ object DefaultKafkaUtils extends AbstractKafkaUtils {
 
     leader.map(l => Broker(l.host, l.port))
   }
-  def createOffsetAndMetadata(offset: Long, time: Long): OffsetAndMetadata = OffsetAndMetadata(offset, timestamp = time)
   def rm(file: File): Unit = Utils.rm(file)
+  def createOffsetAndMetadata(offset: Long, time: Long): OffsetAndMetadata = OffsetAndMetadata(offset, timestamp = time)
+  def createOffsetCommitRequest(groupId: String,
+                                requestInfo: immutable.Map[TopicAndPartition, OffsetAndMetadata],
+                                versionId: Short,
+                                correlationId: Int,
+                                clientId: String): OffsetCommitRequest =
+    new OffsetCommitRequest(groupId, requestInfo, versionId, correlationId, clientId)
 }
 
 /**
