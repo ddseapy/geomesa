@@ -16,4 +16,4 @@ For kafka 0.9.0.1 you will need to install the following jars into the geoserver
 * kafka_2.11-0.9.0.1.jar
 * metrics-core-2.2.0.jar
 * zkclient-0.7.jar
-* zookeeper-3.4.6.jar
+* zookeeper-3.4.5.jar
