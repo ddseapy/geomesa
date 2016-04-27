@@ -17,8 +17,8 @@ import kafka.consumer.{AssignmentContext, PartitionAssignor}
 import kafka.network.BlockingChannel
 import org.apache.kafka.common.security.JaasUtils
 import org.apache.kafka.common.utils.Utils
+import org.locationtech.geomesa.kafka.common.{ZkUtils, KafkaUtils}
 import org.locationtech.geomesa.kafka.consumer.Broker
-import org.locationtech.geomesa.kafka.{ZkUtils, KafkaUtils}
 
 import scala.collection.immutable
 
@@ -26,7 +26,7 @@ class KafkaUtils09 extends KafkaUtils {
   override def channelToPayload: (BlockingChannel) => ByteBuffer = _.receive().payload()
   override def channelSend(bc: BlockingChannel, requestOrResponse: RequestOrResponse): Long = bc.send(requestOrResponse)
   override def leaderBrokerForPartition: PartitionMetadata => Option[Broker] = _.leader.map(l => Broker(l.host, l.port))
-  override def assign(partitionAssignor: PartitionAssignor, ac: AssignmentContext) = partitionAssignor.assign(ac).get(ac.consumerId)
+  override def assign(partitionAssignor: PartitionAssignor, ac: AssignmentContext) = partitionAssignor.assign(ac).get(ac.consumerId).toMap
   override def createZkUtils(zkConnect: String, sessionTimeout: Int, connectTimeout: Int): ZkUtils =
     ZkUtils09(kafka.utils.ZkUtils(zkConnect, sessionTimeout, connectTimeout, JaasUtils.isZkSecurityEnabled))
   override def tryFindNewLeader(tap: TopicAndPartition,

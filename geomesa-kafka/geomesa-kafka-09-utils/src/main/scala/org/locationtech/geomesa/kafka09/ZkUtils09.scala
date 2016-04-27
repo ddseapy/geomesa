@@ -16,7 +16,7 @@ import kafka.network.BlockingChannel
 import kafka.utils.ZKCheckedEphemeral
 import org.I0Itec.zkclient.ZkClient
 import org.apache.zookeeper.data.Stat
-import org.locationtech.geomesa.kafka.ZkUtils
+import org.locationtech.geomesa.kafka.common.ZkUtils
 
 case class ZkUtils09(zkUtils: kafka.utils.ZkUtils) extends ZkUtils {
   override def zkClient: ZkClient = zkUtils.zkClient

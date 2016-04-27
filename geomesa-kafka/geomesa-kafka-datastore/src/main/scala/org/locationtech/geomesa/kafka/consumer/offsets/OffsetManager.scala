@@ -17,7 +17,8 @@ import kafka.common.{OffsetAndMetadata, TopicAndPartition}
 import kafka.consumer.ConsumerConfig
 import kafka.message.{ByteBufferMessageSet, MessageAndOffset}
 import kafka.network.BlockingChannel
-import org.locationtech.geomesa.kafka.{ZkUtils, KafkaUtilsLoader}
+import org.locationtech.geomesa.kafka.KafkaUtilsLoader
+import org.locationtech.geomesa.kafka.common.ZkUtils
 import org.locationtech.geomesa.kafka.consumer.KafkaConsumer._
 import org.locationtech.geomesa.kafka.consumer._
 import org.locationtech.geomesa.kafka.consumer.offsets.FindOffset.MessagePredicate
@@ -106,8 +107,8 @@ class OffsetManager(val config: ConsumerConfig)
 
   @tailrec
   private[kafka] final def binaryOffsetSearch(consumer: WrappedConsumer,
-                                 predicate: MessagePredicate,
-                                 bounds: (Long, Long)): Option[Long] = {
+                                                predicate: MessagePredicate,
+                                                bounds: (Long, Long)): Option[Long] = {
 
     // end is exclusive
     val (start, end) = bounds

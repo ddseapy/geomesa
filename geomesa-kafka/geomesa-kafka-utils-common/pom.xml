@@ -16,18 +16,14 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>geomesa-kafka-09-utils</artifactId>
-    <name>GeoMesa Kafka 09 Utils</name>
+    <artifactId>geomesa-kafka-utils-common</artifactId>
+    <name>GeoMesa Kafka Utils Common</name>
 
     <dependencies>
         <dependency>
-            <groupId>org.locationtech.geomesa</groupId>
-            <artifactId>geomesa-kafka-utils-common</artifactId>
-        </dependency>
-        <dependency>
             <groupId>org.apache.kafka</groupId>
             <artifactId>kafka_2.11</artifactId>
-            <version>0.9.0.1</version>
+            <version>0.8.2.1</version>
         </dependency>
     </dependencies>
 

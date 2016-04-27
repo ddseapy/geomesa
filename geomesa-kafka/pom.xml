@@ -12,7 +12,9 @@
     <name>GeoMesa Kafka Parent</name>
     <modules>
         <module>geomesa-kafka-datastore</module>
+        <module>geomesa-kafka-08-utils</module>
         <module>geomesa-kafka-09-utils</module>
+        <module>geomesa-kafka-utils-common</module>
     </modules>
 
     <properties>
@@ -23,7 +25,7 @@
         <dependencies>
             <dependency>
                 <groupId>org.locationtech.geomesa</groupId>
-                <artifactId>geomesa-kafka-datastore</artifactId>
+                <artifactId>geomesa-kafka-utils-common</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
