@@ -34,5 +34,3 @@ trait ZkUtils {
   def readData(path: String): (String, Stat)
   def close(): Unit
 }
-
-

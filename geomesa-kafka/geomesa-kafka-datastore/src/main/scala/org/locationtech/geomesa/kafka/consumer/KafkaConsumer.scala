@@ -16,14 +16,13 @@ import java.util.concurrent.atomic.{AtomicBoolean, AtomicLong}
 
 import com.typesafe.scalalogging.LazyLogging
 import kafka.api._
-import kafka.common.{OffsetAndMetadata, ErrorMapping, TopicAndPartition}
+import kafka.common.{ErrorMapping, OffsetAndMetadata, TopicAndPartition}
 import kafka.consumer._
 import kafka.message.ByteBufferMessageSet
 import kafka.serializer.Decoder
 import kafka.utils.ZKGroupDirs
 import org.I0Itec.zkclient.ZkClient
 import org.I0Itec.zkclient.exception.ZkNodeExistsException
-import org.locationtech.geomesa.kafka.KafkaUtilsLoader
 import org.locationtech.geomesa.kafka.consumer.offsets.{GroupOffset, OffsetManager, RequestedOffset}
 
 import scala.annotation.tailrec

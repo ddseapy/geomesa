@@ -107,8 +107,8 @@ class OffsetManager(val config: ConsumerConfig)
 
   @tailrec
   private[kafka] final def binaryOffsetSearch(consumer: WrappedConsumer,
-                                                predicate: MessagePredicate,
-                                                bounds: (Long, Long)): Option[Long] = {
+                                 predicate: MessagePredicate,
+                                 bounds: (Long, Long)): Option[Long] = {
 
     // end is exclusive
     val (start, end) = bounds
@@ -208,7 +208,9 @@ class OffsetManager(val config: ConsumerConfig)
 
   @tailrec
   private def commitOffsets(offsets: Map[TopicAndPartition, OffsetAndMetadata], tries: Int): Unit = {
-    val request = new OffsetCommitRequest(config.groupId, offsets, OffsetCommitRequest.CurrentVersion, 0, clientId)
+    val version = OffsetCommitRequest.CurrentVersion
+
+    val request = new OffsetCommitRequest(config.groupId, offsets, version, 0, clientId)
 
     try {
       channel.channel().send(request)

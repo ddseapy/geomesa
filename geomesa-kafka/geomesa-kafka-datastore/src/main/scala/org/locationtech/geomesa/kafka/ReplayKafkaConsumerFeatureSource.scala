@@ -214,8 +214,8 @@ class ReplayTimeHelper(sft: SimpleFeatureType, replayTime: Long) {
   *               [[Delete]] messages
   */
 private[kafka] case class ReplaySnapshotFeatureCache(override val sft: SimpleFeatureType,
-                                                       replayTime: Long,
-                                                       events: Seq[GeoMessage])
+                                                     replayTime: Long,
+                                                     events: Seq[GeoMessage])
 
   extends KafkaConsumerFeatureCache {
 
