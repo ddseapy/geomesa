@@ -16,7 +16,7 @@ import java.util.concurrent.atomic.{AtomicBoolean, AtomicLong}
 
 import com.typesafe.scalalogging.LazyLogging
 import kafka.api._
-import kafka.common.{ErrorMapping, TopicAndPartition}
+import kafka.common.{OffsetAndMetadata, ErrorMapping, TopicAndPartition}
 import kafka.consumer._
 import kafka.message.ByteBufferMessageSet
 import kafka.serializer.Decoder
@@ -128,7 +128,7 @@ case class KafkaConsumer[K, V](topic: String,
           s"[${offsets.map(o => s"${o._1.partition}->${o._2}").mkString(",")}]")
 
       val time = System.currentTimeMillis()
-      val commits = offsets.map { case (tap, o) => (tap, KafkaUtilsLoader.kafkaUtils.createOffsetAndMetadata(o, time)) }
+      val commits = offsets.map { case (tap, o) => (tap, OffsetAndMetadata(o, metadata = "", timestamp = time)) }
       offsetManager.commitOffsets(commits, isAutoCommit = false)
       commits.foreach { case (tap, o) => consumeCheck.put(tap, o.offset) }
     } catch {
@@ -179,7 +179,7 @@ case class KafkaConsumer[K, V](topic: String,
       partitionsForQueue.foreach { partition =>
         val tap = TopicAndPartition(topic, partition.partitionId)
         val clientId = config.clientId
-        val leader = KafkaUtilsLoader.kafkaUtils.leaderBrokerForPartition(partition).getOrElse(findNewLeader(tap, None, config))
+        val leader = partition.leader.map(l => Broker(l.host, l.port)).getOrElse(findNewLeader(tap, None, config))
 
         val connection = createConsumer(leader.host, leader.port, config, clientId)
         val consumer = WrappedConsumer(connection, tap, config)
@@ -219,7 +219,7 @@ case class KafkaConsumer[K, V](topic: String,
         maxToConsume = Math.max(nextToConsume, maxToConsume)
       }
       if (maxToConsume > consumeCheck.get(tap)) {
-        Some(tap -> KafkaUtilsLoader.kafkaUtils.createOffsetAndMetadata(maxToConsume, System.currentTimeMillis()))
+        Some(tap -> OffsetAndMetadata(maxToConsume, metadata = "", timestamp = System.currentTimeMillis()))
       } else {
         None
       }
@@ -394,7 +394,15 @@ object KafkaConsumer extends LazyLogging {
                             config: ConsumerConfig,
                             tries: Int): Broker = {
     val partitions = Try(findPartitions(tap.topic, config)).toOption
-    KafkaUtilsLoader.kafkaUtils.tryFindNewLeader(tap, partitions, oldLeader, tries) match {
+    val maybeLeader = partitions.flatMap(_.find(_.partitionId == tap.partition)).flatMap(_.leader)
+    val leader = oldLeader match {
+      // first time through if the leader hasn't changed give ZooKeeper a second to recover
+      // second time, assume the broker did recover before failover, or it was a non-Broker issue
+      case Some(old) => maybeLeader.filter(m => (m.host != old.host && m.port != old.port) || tries > 1)
+      case None      => maybeLeader
+    }
+
+    leader.map(l => Broker(l.host, l.port)) match {
       case Some(l) => l
       case None =>
         if (tries < config.rebalanceMaxRetries) {

@@ -92,7 +92,7 @@ class OffsetManager(val config: ConsumerConfig)
                   config: ConsumerConfig): Offsets = {
     partitions.flatMap { partition =>
       val tap = TopicAndPartition(topic, partition.partitionId)
-      val leader = KafkaUtilsLoader.kafkaUtils.leaderBrokerForPartition(partition).getOrElse(findNewLeader(tap, None, config))
+      val leader = partition.leader.map(l => Broker(l.host, l.port)).getOrElse(findNewLeader(tap, None, config))
       val consumer = WrappedConsumer(createConsumer(leader.host, leader.port, config, "offsetLookup"), tap, config)
       try {
         val consumerId = Request.OrdinaryConsumerId
@@ -208,10 +208,10 @@ class OffsetManager(val config: ConsumerConfig)
 
   @tailrec
   private def commitOffsets(offsets: Map[TopicAndPartition, OffsetAndMetadata], tries: Int): Unit = {
-    val request = KafkaUtilsLoader.kafkaUtils.createOffsetCommitRequest(config.groupId, offsets, OffsetCommitRequest.CurrentVersion, 0, clientId)
+    val request = new OffsetCommitRequest(config.groupId, offsets, OffsetCommitRequest.CurrentVersion, 0, clientId)
 
     try {
-      KafkaUtilsLoader.kafkaUtils.channelSend(channel.channel(), request)
+      channel.channel().send(request)
       val response = OffsetCommitResponse.readFrom(KafkaUtilsLoader.kafkaUtils.channelToPayload(channel.channel()))
       val errors = response.commitStatus.filter { case (_, code) => code != NoError }
       errors.foreach { case (topicAndPartition, code) =>
@@ -257,7 +257,7 @@ object OffsetManager extends LazyLogging {
                       config: ConsumerConfig): Offsets = {
     val version = OffsetFetchRequest.CurrentVersion
     val request = new OffsetFetchRequest(config.groupId, partitions, version, 0, clientId)
-    KafkaUtilsLoader.kafkaUtils.channelSend(channel, request)
+    channel.send(request)
     val response = OffsetFetchResponse.readFrom(KafkaUtilsLoader.kafkaUtils.channelToPayload(channel))
     handleOffsetErrors(response.requestInfo.values.map(_.error))
     response.requestInfo.map { case (topicAndPartion, metadata) => (topicAndPartion, metadata.offset) }
@@ -272,7 +272,7 @@ object OffsetManager extends LazyLogging {
                        config: ConsumerConfig): Offsets = {
     partitions.flatMap { partition =>
       val tap = TopicAndPartition(topic, partition.partitionId)
-      val leader = KafkaUtilsLoader.kafkaUtils.leaderBrokerForPartition(partition).getOrElse(findNewLeader(tap, None, config))
+      val leader = partition.leader.map(l => Broker(l.host, l.port)).getOrElse(findNewLeader(tap, None, config))
       val consumer = createConsumer(leader.host, leader.port, config, "offsetLookup")
       try {
         val requestInfo = Map(tap -> PartitionOffsetRequestInfo(time, 1))

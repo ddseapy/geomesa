@@ -8,17 +8,9 @@
 
 package org.locationtech.geomesa.kafka
 
-import java.util.{Properties, ServiceLoader}
+import java.util.ServiceLoader
 
 import com.typesafe.scalalogging.LazyLogging
-import kafka.server.{KafkaConfig, KafkaServer}
-import kafka.utils.TestUtils
-
-trait TestKafkaUtils {
-  def createBrokerConfig(nodeId: Int, zkConnect: String): Properties
-  def choosePort: Int
-  def createServer(props: Properties): KafkaServer
-}
 
 object TestKafkaUtilsLoader extends LazyLogging {
   lazy val testKafkaUtils: TestKafkaUtils = {
@@ -30,14 +22,7 @@ object TestKafkaUtilsLoader extends LazyLogging {
       }
       first
     } else {
-      logger.debug(s"No geomesa TestKafkaUtils found.  Using default one for 0.8.")
-      TestKafkaUtils08
+      throw new Exception(s"No geomesa TestKafkaUtils found! Cannot continue.")
     }
   }
-}
-
-object TestKafkaUtils08 extends TestKafkaUtils {
-  override def createBrokerConfig(nodeId: Int, zkConnect: String): Properties = TestUtils.createBrokerConfig(nodeId)
-  override def choosePort: Int = TestUtils.choosePort()
-  override def createServer(props: Properties): KafkaServer = TestUtils.createServer(new KafkaConfig(props))
 }

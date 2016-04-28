@@ -11,6 +11,7 @@ package org.locationtech.geomesa.kafka
 import java.net.InetSocketAddress
 
 import com.typesafe.scalalogging.LazyLogging
+import kafka.server.KafkaConfig
 import kafka.utils.TestUtils
 import org.apache.zookeeper.server.{NIOServerCnxnFactory, ZooKeeperServer}
 
@@ -20,8 +21,8 @@ trait HasEmbeddedZookeeper {
 }
 
 trait HasEmbeddedKafka {
-  val SYS_PROP_RUN_TESTS = "org.locationtech.geomesa.test-kafka"
-  val (brokerConnect, zkConnect) = EmbeddedKafka.connect()
+  lazy val SYS_PROP_RUN_TESTS = "org.locationtech.geomesa.test-kafka"
+  lazy val (brokerConnect, zkConnect) = EmbeddedKafka.connect()
   def shutdown(): Unit = EmbeddedKafka.shutdown()
 }
 
@@ -108,7 +109,7 @@ class EmbeddedKafka extends EmbeddedService[(String, String)] {
   val brokerConnect = s"${brokerConf.getProperty("host.name")}:${brokerConf.getProperty("port")}"
   override def connection = (brokerConnect, zkConnect)
 
-  private val server = TestKafkaUtilsLoader.testKafkaUtils.createServer(brokerConf)
+  private val server = TestUtils.createServer(new KafkaConfig(brokerConf))
 
   override def shutdown(): Unit = {
     try { server.shutdown() } catch { case _: Throwable => }
